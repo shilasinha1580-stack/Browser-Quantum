@@ -1,0 +1,16 @@
+Source: quantum-browser
+Section: web
+Priority: optional
+Maintainer: Quantum Browser Developers <dev@quantumbrowser.org>
+Build-Depends: debhelper (>= 11), build-essential, libxul-dev
+Standards-Version: 4.5.0
+Homepage: https://github.com/quantum-browser/quantum-browser
+
+Package: quantum-browser
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, libx11-6, libgtk-3-0, libasound2
+Description: High-performance web browser powered by Mozilla Gecko
+ Quantum Browser is an open-source web browser featuring the Mozilla
+ Gecko desktop rendering engine, pre-bundled uBlock Origin WebExtension,
+ multi-tab management, and strict local-only privacy controls.
+ Zero telemetry, zero analytics.

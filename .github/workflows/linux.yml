@@ -1,0 +1,30 @@
+name: Build Linux 64-bit (.deb)
+
+on:
+  push:
+    branches: [main, release]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential dpkg-dev debhelper
+
+      - name: Build Debian Package
+        run: |
+          cd desktop/linux
+          dpkg-buildpackage -us -uc -b
+
+      - name: Upload .deb Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: quantum-browser-linux-deb
+          path: ../quantum-browser_*.deb

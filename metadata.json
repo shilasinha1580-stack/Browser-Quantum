@@ -1,0 +1,10 @@
+{
+  "name": "Quantum Browser",
+  "description": "Functional open-source web browser powered by Mozilla Gecko desktop engine and GeckoView on Android, featuring pre-bundled uBlock Origin, local privacy controls, multi-tab browsing, and search engine integration.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

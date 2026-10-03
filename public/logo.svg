@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1035"/>
+      <stop offset="50%" stop-color="#2e1065"/>
+      <stop offset="100%" stop-color="#0f0728"/>
+    </linearGradient>
+    <linearGradient id="orbitGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="50%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="orbitGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e879f9"/>
+      <stop offset="60%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="coreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5d0fe"/>
+      <stop offset="30%" stop-color="#d8b4fe"/>
+      <stop offset="70%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#6b21a8"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="outerGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="24" result="blur2"/>
+      <feComposite in="SourceGraphic" in2="blur2" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded rect -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle border -->
+  <rect width="508" height="508" x="2" y="2" rx="126" fill="none" stroke="#a855f7" stroke-width="3" stroke-opacity="0.3"/>
+
+  <!-- Outer Quantum Waves / Compass Dial -->
+  <circle cx="256" cy="256" r="190" fill="none" stroke="#7c3aed" stroke-width="3" stroke-dasharray="8 12" stroke-opacity="0.4"/>
+  <circle cx="256" cy="256" r="215" fill="none" stroke="#9333ea" stroke-width="1.5" stroke-opacity="0.25"/>
+
+  <!-- Orbital Rings -->
+  <!-- Ring 1 (Rotated -35 deg) -->
+  <g transform="translate(256, 256) rotate(-35) translate(-256, -256)" filter="url(#glow)">
+    <ellipse cx="256" cy="256" rx="180" ry="68" fill="none" stroke="url(#orbitGrad1)" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="436" cy="256" r="14" fill="#f5d0fe"/>
+    <circle cx="76" cy="256" r="10" fill="#c084fc"/>
+  </g>
+
+  <!-- Ring 2 (Rotated 35 deg) -->
+  <g transform="translate(256, 256) rotate(35) translate(-256, -256)" filter="url(#glow)">
+    <ellipse cx="256" cy="256" rx="180" ry="68" fill="none" stroke="url(#orbitGrad2)" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="256" cy="324" r="12" fill="#e879f9"/>
+    <circle cx="390" cy="210" r="9" fill="#a855f7"/>
+  </g>
+
+  <!-- Center Glowing Core / Quantum Particle & Compass Needle -->
+  <g filter="url(#outerGlow)">
+    <circle cx="256" cy="256" r="54" fill="url(#coreGrad)"/>
+    <circle cx="256" cy="256" r="42" fill="#ffffff" fill-opacity="0.25"/>
+    <circle cx="256" cy="256" r="26" fill="#ffffff"/>
+  </g>
+
+  <!-- Stylized Fast Forward / Quantum Compass Ray -->
+  <path d="M 256 160 L 268 244 L 352 256 L 268 268 L 256 352 L 244 268 L 160 256 L 244 244 Z" fill="#ffffff" fill-opacity="0.95" filter="url(#glow)"/>
+  <circle cx="256" cy="256" r="8" fill="#7c3aed"/>
+</svg>
