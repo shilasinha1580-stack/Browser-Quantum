@@ -314,7 +314,7 @@ export default function App() {
     if (activeTab.url.startsWith('quantum:')) return;
     setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, isLoading: true } : t));
     if (iframeRef.current) {
-      iframeRef.current.src = getProxyUrl(activeTab.url);
+      iframeRef.current.src = getViewportSrc(activeTab.url);
     }
   };
 
@@ -366,7 +366,40 @@ export default function App() {
     }
   };
 
-  const getProxyUrl = (targetUrl: string) => {
+  const getViewportSrc = (targetUrl: string) => {
+    try {
+      const parsed = new URL(targetUrl.startsWith('http') ? targetUrl : `https://${targetUrl}`);
+      const hostname = parsed.hostname.toLowerCase();
+
+      // Normal HTTPS Google search: load directly from Google with official iframe compatibility.
+      // This ensures the origin is https://www.google.com and allows Google's own page to handle CAPTCHA normally.
+      // No server proxying, no HTML rewriting, and no invalid domain for site key error.
+      if (hostname === 'google.com' || hostname.endsWith('.google.com')) {
+        if (!parsed.searchParams.has('igu')) {
+          parsed.searchParams.set('igu', '1');
+        }
+        return parsed.toString();
+      }
+
+      // YouTube direct embed handling:
+      // YouTube blocks standard iframing via X-Frame-Options: SAMEORIGIN on www.youtube.com,
+      // but officially supports direct HTTPS video/channel/search embeds via youtube-nocookie.com / embed
+      // with full HTML5 video, MediaSource, DRM, and controls.
+      if (hostname === 'youtube.com' || hostname.endsWith('.youtube.com') || hostname === 'youtu.be') {
+        const videoId = parsed.searchParams.get('v') || (hostname === 'youtu.be' ? parsed.pathname.slice(1) : '');
+        if (videoId) {
+          return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
+        }
+        const searchQuery = parsed.searchParams.get('search_query');
+        if (searchQuery) {
+          return `https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(searchQuery)}`;
+        }
+        return 'https://www.youtube-nocookie.com/embed/videoseries?list=PLrEnWoR732-BHrPp_QLgkMNVNwtEGJRL1';
+      }
+    } catch {
+      // Fallback
+    }
+
     const isWhitelisted = uBlockEngine.isWhitelisted(targetUrl);
     const uboParam = uBlockEngine.getSettings().enabled && !isWhitelisted ? '1' : '0';
     return `/api/proxy?url=${encodeURIComponent(targetUrl)}&ubo=${uboParam}`;
@@ -714,9 +747,10 @@ export default function App() {
           >
             <iframe
               ref={iframeRef}
-              src={getProxyUrl(activeTab.url)}
+              src={getViewportSrc(activeTab.url)}
               title={activeTab.title}
-              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-presentation allow-top-navigation-by-user-activation"
               onLoad={() => {
                 setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, isLoading: false } : t));
               }}

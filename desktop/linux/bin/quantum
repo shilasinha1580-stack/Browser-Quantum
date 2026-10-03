@@ -1,0 +1,3 @@
+#!/bin/sh
+# Quantum Browser Linux executable wrapper
+exec /usr/lib/quantum-browser/quantum-browser "$@"

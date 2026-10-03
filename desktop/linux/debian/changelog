@@ -1,0 +1,6 @@
+quantum-browser (1.0.0-1) unstable; urgency=medium
+
+  * Initial release of Quantum Browser for Linux 64-bit.
+  * Integrated Mozilla Gecko engine and pre-bundled uBlock Origin.
+
+ -- Quantum Browser Developers <dev@quantumbrowser.org>  Sat, 03 Oct 2026 00:00:00 +0000

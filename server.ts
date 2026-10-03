@@ -71,8 +71,84 @@ const UBLOCK_COSMETIC_CSS = `
   }
 `;
 
+// Helper: Check if a URL is an official Google reCAPTCHA or security verification endpoint
+function isGoogleRecaptchaResource(urlStr: string): boolean {
+  try {
+    const u = new URL(urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
+    const host = u.hostname.toLowerCase();
+    const path = u.pathname.toLowerCase();
+
+    if (
+      host === 'recaptcha.net' ||
+      host.endsWith('.recaptcha.net') ||
+      ((host === 'google.com' || host.endsWith('.google.com') || host === 'gstatic.com' || host.endsWith('.gstatic.com')) &&
+        (path.includes('/recaptcha') || path.includes('/sorry/') || path.includes('/js/bg')))
+    ) {
+      return true;
+    }
+  } catch {
+    if (urlStr.includes('/recaptcha/') || urlStr.includes('gstatic.com/recaptcha') || urlStr.includes('recaptcha.net')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Helper: Check if a URL is an essential YouTube video playback, player asset, or metadata endpoint
+function isYouTubeRequiredResource(urlStr: string): boolean {
+  try {
+    const u = new URL(urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
+    const host = u.hostname.toLowerCase();
+    const path = u.pathname.toLowerCase();
+
+    if (
+      host === 'googlevideo.com' || host.endsWith('.googlevideo.com') ||
+      host === 'ytimg.com' || host.endsWith('.ytimg.com') ||
+      host === 'ggpht.com' || host.endsWith('.ggpht.com') ||
+      host === 'youtube-nocookie.com' || host.endsWith('.youtube-nocookie.com')
+    ) {
+      return true;
+    }
+
+    if (host === 'youtube.com' || host.endsWith('.youtube.com')) {
+      if (
+        path.startsWith('/s/player/') ||
+        path.startsWith('/s/desktop/') ||
+        path.startsWith('/youtubei/') ||
+        path.startsWith('/api/stats/playback') ||
+        path.startsWith('/api/stats/qoe') ||
+        path.startsWith('/api/stats/watchtime') ||
+        path.startsWith('/embed') ||
+        path.includes('base.js') ||
+        path.includes('player')
+      ) {
+        return true;
+      }
+    }
+
+    if (host.includes('doubleclick.net') && path.includes('/instream/')) {
+      return true;
+    }
+  } catch {
+    if (urlStr.includes('googlevideo.com') || urlStr.includes('ytimg.com') || urlStr.includes('/s/player/')) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Helper: Check if URL matches ad/tracker filter
 function isAdOrTracker(urlStr: string): { blocked: boolean; pattern?: string } {
+  // Google reCAPTCHA and security challenge resources are never blocked
+  if (isGoogleRecaptchaResource(urlStr)) {
+    return { blocked: false };
+  }
+
+  // YouTube core streaming, player assets, and InnerTube APIs are never blocked
+  if (isYouTubeRequiredResource(urlStr)) {
+    return { blocked: false };
+  }
+
   for (const pattern of AD_TRACKER_PATTERNS) {
     if (pattern.test(urlStr)) {
       return { blocked: true, pattern: pattern.toString() };
@@ -160,7 +236,7 @@ app.get('/api/proxy', async (req: Request, res: Response) => {
     const timeout = setTimeout(() => controller.abort(), 12000);
 
     const headers: Record<string, string> = {
-      'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:135.0) Gecko/20100101 QuantumBrowser/1.0 Firefox/135.0',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0',
       'Accept': req.headers.accept || 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.5',
       'Sec-Fetch-Dest': 'document',
@@ -190,6 +266,11 @@ app.get('/api/proxy', async (req: Request, res: Response) => {
     // If it's an HTML document, rewrite it to work nicely inside Quantum Browser
     if (contentType.includes('text/html')) {
       let html = await upstreamResponse.text();
+
+      // If this is a Google reCAPTCHA or security challenge page, do not inject scripts or cosmetic rules
+      if (isGoogleRecaptchaResource(upstreamResponse.url) || upstreamResponse.url.includes('/sorry/')) {
+        return res.send(html);
+      }
 
       // Ensure <base> tag points to original URL for relative assets
       const baseTag = `<base href="${upstreamResponse.url}">`;

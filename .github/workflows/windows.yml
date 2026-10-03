@@ -14,20 +14,73 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install NSIS
-        run: choco install nsis -y
+        shell: pwsh
+        run: |
+          choco install nsis -y
+          $nsisDirs = @("C:\Program Files (x86)\NSIS", "C:\Program Files\NSIS")
+          $nsisFound = $false
+          foreach ($dir in $nsisDirs) {
+            if (Test-Path "$dir\makensis.exe") {
+              Write-Host "Found NSIS at: $dir"
+              $dir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+              $nsisFound = $true
+              break
+            }
+          }
+          if (-not $nsisFound) {
+            throw "makensis.exe was not found in expected NSIS directories after installation."
+          }
+
+      - name: Verify makensis Availability
+        shell: pwsh
+        run: |
+          Get-Command makensis
+          makensis /VERSION
+
+      - name: Build Real Windows Browser Binaries
+        shell: pwsh
+        working-directory: desktop/windows
+        run: |
+          New-Item -ItemType Directory -Force -Path "bin\x64"
+          New-Item -ItemType Directory -Force -Path "bin\x86"
+          New-Item -ItemType Directory -Force -Path "output"
+          Copy-Item "..\..\public\logo.ico" "bin\x64\logo.ico" -Force
+          Copy-Item "..\..\public\logo.ico" "bin\x86\logo.ico" -Force
+
+          $csc64 = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          $csc32 = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe"
+          if (-not (Test-Path $csc64)) { $csc64 = "csc" }
+          if (-not (Test-Path $csc32)) { $csc32 = "csc" }
+
+          Write-Host "Compiling 64-bit Windows Quantum Browser binary..."
+          & $csc64 /target:winexe /platform:x64 /win32icon:..\..\public\logo.ico /out:bin\x64\quantum.exe src\Program.cs
+
+          Write-Host "Compiling 32-bit Windows Quantum Browser binary..."
+          & $csc32 /target:winexe /platform:x86 /win32icon:..\..\public\logo.ico /out:bin\x86\quantum.exe src\Program.cs
+
+          if (-not (Test-Path "bin\x64\quantum.exe")) { throw "bin\x64\quantum.exe compilation failed" }
+          if (-not (Test-Path "bin\x86\quantum.exe")) { throw "bin\x86\quantum.exe compilation failed" }
 
       - name: Compile Windows 64-bit Installer
+        shell: pwsh
+        working-directory: desktop/windows
         run: |
-          cd desktop/windows
           makensis /DARCH=x64 quantum-browser.nsi
 
       - name: Compile Windows 32-bit Installer
+        shell: pwsh
+        working-directory: desktop/windows
         run: |
-          cd desktop/windows
           makensis /DARCH=x86 quantum-browser.nsi
+
+      - name: Verify Installer Artifacts
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path desktop/windows/output/*.exe
 
       - name: Upload Windows Installers
         uses: actions/upload-artifact@v4
         with:
           name: quantum-browser-windows
           path: desktop/windows/output/*.exe
+

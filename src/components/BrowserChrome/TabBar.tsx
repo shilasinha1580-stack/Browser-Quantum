@@ -86,14 +86,16 @@ export const TabBar: React.FC<TabBarProps> = ({
                 </span>
               )}
 
-              {/* Actions: Mute / Pin / Close */}
-              <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Actions: Mute / Pin / Close - Permanently visible & tappable on Android/touch devices */}
+              <div className={`flex items-center gap-0.5 shrink-0 transition-opacity ${
+                isActive ? 'opacity-100' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'
+              }`}>
                 {/* Audio toggle if playing */}
                 <button
                   type="button"
                   onClick={(e) => onToggleMute(tab.id, e)}
                   title={tab.isMuted ? 'Unmute Tab' : 'Mute Tab'}
-                  className="p-0.5 hover:bg-violet-700/50 rounded text-violet-300 transition"
+                  className="p-1 sm:p-0.5 hover:bg-violet-700/50 rounded text-violet-300 transition touch-manipulation"
                 >
                   {tab.isMuted ? (
                     <VolumeX className="w-3 h-3 text-red-400" />
@@ -102,15 +104,16 @@ export const TabBar: React.FC<TabBarProps> = ({
                   )}
                 </button>
 
-                {/* Close Button */}
+                {/* Close Button - Permanently tappable on Android without hover */}
                 {tabs.length > 1 && (
                   <button
                     type="button"
                     onClick={(e) => onCloseTab(tab.id, e)}
                     title="Close Tab"
-                    className="p-0.5 hover:bg-violet-700/60 hover:text-white rounded text-violet-400 transition"
+                    aria-label={`Close tab ${tab.title || ''}`}
+                    className="p-1 sm:p-0.5 hover:bg-violet-700/60 active:bg-violet-600 hover:text-white rounded text-violet-300 sm:text-violet-400 transition touch-manipulation min-w-[20px] min-h-[20px] flex items-center justify-center"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                   </button>
                 )}
               </div>

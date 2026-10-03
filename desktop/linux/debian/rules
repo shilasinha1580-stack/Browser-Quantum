@@ -1,10 +1,16 @@
 #!/usr/bin/make -f
+
 %:
 	dh $@
 
 override_dh_auto_build:
-	# Build Quantum Browser with Gecko runtime bindings
 	echo "Building Quantum Browser for Linux 64-bit with Mozilla Gecko engine..."
+	mkdir -p bin
+	if [ ! -f bin/quantum ]; then \
+		echo '#!/bin/sh' > bin/quantum; \
+		echo 'exec /usr/lib/quantum-browser/quantum "$$@"' >> bin/quantum; \
+		chmod +x bin/quantum; \
+	fi
 
 override_dh_auto_install:
 	install -d debian/quantum-browser/usr/bin
@@ -12,3 +18,7 @@ override_dh_auto_install:
 	install -d debian/quantum-browser/usr/share/applications
 	install -d debian/quantum-browser/usr/share/icons/hicolor/128x128/apps
 	cp ../../public/logo.png debian/quantum-browser/usr/share/icons/hicolor/128x128/apps/quantum-browser.png
+	install -m 755 bin/quantum-browser-app debian/quantum-browser/usr/lib/quantum-browser/quantum
+	install -m 755 bin/quantum debian/quantum-browser/usr/bin/quantum-browser
+	install -m 644 quantum-browser.desktop debian/quantum-browser/usr/share/applications/quantum-browser.desktop
+

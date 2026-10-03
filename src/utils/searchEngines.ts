@@ -111,14 +111,18 @@ export function parseAddressInput(
 }
 
 /**
- * Format displayed URL (strips redundant https:// and trailing / for clean UI)
+ * Format displayed URL (strips redundant https://, internal frame params, and trailing / for clean UI)
  */
 export function formatDisplayUrl(url: string): string {
   if (url.startsWith('quantum:')) return url;
   try {
     const parsed = new URL(url);
-    if (parsed.protocol === 'https:') {
-      const formatted = parsed.hostname + (parsed.pathname === '/' ? '' : parsed.pathname) + parsed.search;
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      // Remove internal frame compatibility param from address bar display
+      parsed.searchParams.delete('igu');
+      const searchStr = parsed.search;
+      const path = parsed.pathname === '/' && !searchStr ? '' : parsed.pathname;
+      const formatted = parsed.hostname + path + searchStr;
       return formatted;
     }
     return url;

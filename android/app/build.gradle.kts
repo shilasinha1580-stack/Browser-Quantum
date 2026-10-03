@@ -24,7 +24,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -49,8 +50,8 @@ android {
 }
 
 dependencies {
-    // Mozilla GeckoView Omni engine (Replaces Chromium & Android WebView)
-    implementation("org.mozilla.geckoview:geckoview-omni:135.0.20250101090000")
+    // Mozilla GeckoView ARM64 engine from official Mozilla Maven repository
+    implementation("org.mozilla.geckoview:geckoview-arm64-v8a:99.0.20220411174855")
 
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")

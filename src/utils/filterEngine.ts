@@ -56,6 +56,15 @@ export const DEFAULT_UBLOCK_SETTINGS: UBlockSettings = {
     }
   ],
   customRules: [
+    '@@||googlevideo.com^',
+    '@@||ytimg.com^',
+    '@@||ggpht.com^',
+    '@@||youtube.com/s/player/',
+    '@@||youtube.com/youtubei/',
+    '@@||static.doubleclick.net/instream/*$domain=youtube.com',
+    '@@||google.com/recaptcha/$script,subdocument,xmlhttprequest',
+    '@@||gstatic.com/recaptcha/$script,subdocument,xmlhttprequest',
+    '@@||recaptcha.net^',
     '||doubleclick.net^',
     '||google-analytics.com^',
     '||adnxs.com^',
@@ -63,6 +72,81 @@ export const DEFAULT_UBLOCK_SETTINGS: UBlockSettings = {
     '##.sponsored-story'
   ]
 };
+
+/**
+ * Check if a URL is an essential YouTube video playback, player asset, or metadata endpoint.
+ * uBlock Origin must never block core video streaming or player initialization.
+ */
+export function isYouTubeRequiredResource(urlStr: string): boolean {
+  try {
+    const u = new URL(urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
+    const host = u.hostname.toLowerCase();
+    const path = u.pathname.toLowerCase();
+
+    // YouTube CDN streaming chunks, thumbnails, avatars, and embed domains
+    if (
+      host === 'googlevideo.com' || host.endsWith('.googlevideo.com') ||
+      host === 'ytimg.com' || host.endsWith('.ytimg.com') ||
+      host === 'ggpht.com' || host.endsWith('.ggpht.com') ||
+      host === 'youtube-nocookie.com' || host.endsWith('.youtube-nocookie.com')
+    ) {
+      return true;
+    }
+
+    // YouTube player binaries, InnerTube API, and playback state pings
+    if (host === 'youtube.com' || host.endsWith('.youtube.com')) {
+      if (
+        path.startsWith('/s/player/') ||
+        path.startsWith('/s/desktop/') ||
+        path.startsWith('/youtubei/') ||
+        path.startsWith('/api/stats/playback') ||
+        path.startsWith('/api/stats/qoe') ||
+        path.startsWith('/api/stats/watchtime') ||
+        path.startsWith('/embed') ||
+        path.includes('base.js') ||
+        path.includes('player')
+      ) {
+        return true;
+      }
+    }
+
+    // Static doubleclick player asset loaded by YouTube player
+    if (host.includes('doubleclick.net') && path.includes('/instream/')) {
+      return true;
+    }
+  } catch {
+    if (urlStr.includes('googlevideo.com') || urlStr.includes('ytimg.com') || urlStr.includes('/s/player/')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Check if a URL is an official Google reCAPTCHA or security verification endpoint.
+ * uBlock Origin must never block security verification challenges.
+ */
+export function isGoogleRecaptchaResource(urlStr: string): boolean {
+  try {
+    const u = new URL(urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
+    const host = u.hostname.toLowerCase();
+    const path = u.pathname.toLowerCase();
+
+    if (
+      host === 'recaptcha.net' ||
+      host.endsWith('.recaptcha.net') ||
+      ((host === 'google.com' || host.endsWith('.google.com') || host === 'gstatic.com' || host.endsWith('.gstatic.com')) &&
+        (path.includes('/recaptcha') || path.includes('/sorry/') || path.includes('/js/bg')))
+    ) {
+      return true;
+    }
+  } catch {
+    if (urlStr.includes('/recaptcha/') || urlStr.includes('gstatic.com/recaptcha') || urlStr.includes('recaptcha.net')) {
+      return true;
+    }
+  }
+  return false;
+}
 
 // Known ad & tracker domains compiled into lookup maps for instant client-side evaluation
 const AD_TRACKER_HOSTS = new Set([
@@ -193,6 +277,16 @@ export class UBlockOriginEngine {
     }
 
     if (this.isWhitelisted(pageDomain)) {
+      return { blocked: false };
+    }
+
+    // Google reCAPTCHA compatibility exception: never block required security challenges
+    if (isGoogleRecaptchaResource(targetUrl)) {
+      return { blocked: false };
+    }
+
+    // YouTube compatibility exception: never block required video playback and player assets
+    if (isYouTubeRequiredResource(targetUrl)) {
       return { blocked: false };
     }
 
