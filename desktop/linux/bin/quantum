@@ -1,3 +1,4 @@
 #!/bin/sh
 # Quantum Browser Linux executable wrapper
-exec /usr/lib/quantum-browser/quantum-browser "$@"
+# Directly launches the standalone Mozilla Gecko runtime
+exec /usr/lib/quantum-browser/quantum "$@"

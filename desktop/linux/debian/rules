@@ -18,7 +18,11 @@ override_dh_auto_install:
 	install -d debian/quantum-browser/usr/share/applications
 	install -d debian/quantum-browser/usr/share/icons/hicolor/128x128/apps
 	cp ../../public/logo.png debian/quantum-browser/usr/share/icons/hicolor/128x128/apps/quantum-browser.png
-	install -m 755 bin/quantum-browser-app debian/quantum-browser/usr/lib/quantum-browser/quantum
+	if [ -d runtime ] && [ -f runtime/quantum ]; then \
+		cp -a runtime/* debian/quantum-browser/usr/lib/quantum-browser/; \
+	else \
+		install -m 755 bin/quantum-browser-app debian/quantum-browser/usr/lib/quantum-browser/quantum; \
+	fi
 	install -m 755 bin/quantum debian/quantum-browser/usr/bin/quantum-browser
 	install -m 644 quantum-browser.desktop debian/quantum-browser/usr/share/applications/quantum-browser.desktop
 

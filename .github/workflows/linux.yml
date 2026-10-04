@@ -16,13 +16,19 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential dpkg-dev debhelper
+          sudo apt-get install -y build-essential dpkg-dev debhelper curl tar bzip2
+
+      - name: Prepare Real Standalone Mozilla Gecko Runtime (Linux 64-bit)
+        run: |
+          ./desktop/linux/prepare-gecko-runtime.sh
 
       - name: Verify Packaging Structure
         run: |
           test -f desktop/linux/debian/control
           test -f desktop/linux/debian/changelog
           test -f desktop/linux/debian/rules
+          test -f desktop/linux/runtime/quantum
+          test -f desktop/linux/runtime/libxul.so
           chmod +x desktop/linux/debian/rules
 
       - name: Build Debian Package

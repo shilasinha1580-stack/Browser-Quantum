@@ -37,29 +37,20 @@ jobs:
           Get-Command makensis
           makensis /VERSION
 
-      - name: Build Real Windows Browser Binaries
+      - name: Prepare Real Standalone Mozilla Gecko Runtime for x64 and x86
         shell: pwsh
-        working-directory: desktop/windows
         run: |
-          New-Item -ItemType Directory -Force -Path "bin\x64"
-          New-Item -ItemType Directory -Force -Path "bin\x86"
-          New-Item -ItemType Directory -Force -Path "output"
-          Copy-Item "..\..\public\logo.ico" "bin\x64\logo.ico" -Force
-          Copy-Item "..\..\public\logo.ico" "bin\x86\logo.ico" -Force
+          & ./desktop/windows/prepare-gecko-runtime.ps1 -Arch both
 
-          $csc64 = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
-          $csc32 = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe"
-          if (-not (Test-Path $csc64)) { $csc64 = "csc" }
-          if (-not (Test-Path $csc32)) { $csc32 = "csc" }
-
-          Write-Host "Compiling 64-bit Windows Quantum Browser binary..."
-          & $csc64 /target:winexe /platform:x64 /win32icon:..\..\public\logo.ico /out:bin\x64\quantum.exe src\Program.cs
-
-          Write-Host "Compiling 32-bit Windows Quantum Browser binary..."
-          & $csc32 /target:winexe /platform:x86 /win32icon:..\..\public\logo.ico /out:bin\x86\quantum.exe src\Program.cs
-
-          if (-not (Test-Path "bin\x64\quantum.exe")) { throw "bin\x64\quantum.exe compilation failed" }
-          if (-not (Test-Path "bin\x86\quantum.exe")) { throw "bin\x86\quantum.exe compilation failed" }
+      - name: Verify Packaging Prerequisites
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "desktop/windows/quantum-browser.nsi")) { throw "quantum-browser.nsi missing" }
+          if (-not (Test-Path "public/logo.ico")) { throw "logo.ico missing" }
+          if (-not (Test-Path "LICENSE")) { throw "LICENSE missing" }
+          if (-not (Test-Path "desktop/windows/bin/x64/xul.dll")) { throw "bin/x64/xul.dll (Gecko Engine) missing" }
+          if (-not (Test-Path "desktop/windows/bin/x86/xul.dll")) { throw "bin/x86/xul.dll (Gecko Engine) missing" }
+          New-Item -ItemType Directory -Force -Path "desktop/windows/output"
 
       - name: Compile Windows 64-bit Installer
         shell: pwsh

@@ -51,7 +51,10 @@ export function runRepositoryBuildsTests() {
     'desktop/linux/debian/source/format',
     'desktop/linux/quantum-browser.desktop',
     'desktop/linux/bin/quantum',
-    'desktop/linux/bin/quantum-browser-app'
+    'desktop/linux/bin/quantum-browser-app',
+    'desktop/linux/prepare-gecko-runtime.sh',
+    'desktop/common/policies.json',
+    'desktop/common/extensions/uBlock0@raymondhill.net.xpi'
   ];
 
   for (const f of linuxFiles) {
@@ -66,10 +69,10 @@ export function runRepositoryBuildsTests() {
   console.log('  ✓ Debian packaging files verified valid and complete');
 
   // 3. Windows Packaging Structure
-  console.log('\n[3/4 Verifying Windows NSIS & C# Engine Source]');
+  console.log('\n[3/4 Verifying Windows NSIS & Standalone Gecko Packaging]');
   const windowsFiles = [
     'desktop/windows/quantum-browser.nsi',
-    'desktop/windows/src/Program.cs',
+    'desktop/windows/prepare-gecko-runtime.ps1',
     'public/logo.ico',
     'LICENSE'
   ];
@@ -79,9 +82,9 @@ export function runRepositoryBuildsTests() {
     console.log(`  ✓ Found: ${f}`);
   }
 
-  const progCs = fs.readFileSync('desktop/windows/src/Program.cs', 'utf8');
-  assert(progCs.includes('Quantum Browser'), 'desktop/windows/src/Program.cs must contain browser implementation');
-  console.log('  ✓ Real Windows browser source code verified in desktop/windows/src/Program.cs');
+  const prepPs1 = fs.readFileSync('desktop/windows/prepare-gecko-runtime.ps1', 'utf8');
+  assert(prepPs1.includes('xul.dll'), 'prepare-gecko-runtime.ps1 must verify Gecko xul.dll');
+  console.log('  ✓ Real Mozilla Gecko Windows runtime script verified in desktop/windows/prepare-gecko-runtime.ps1');
 
   // 4. TabBar Touch Close Button Verification
   console.log('\n[4/4 Verifying Android / Touch Tab Close Button]');
@@ -101,10 +104,11 @@ export function runRepositoryBuildsTests() {
   assert(windowsYml.includes('GITHUB_PATH'), 'windows.yml must export NSIS to GITHUB_PATH');
   assert(windowsYml.includes('makensis /DARCH=x64'), 'windows.yml must build x64 installer');
   assert(windowsYml.includes('makensis /DARCH=x86'), 'windows.yml must build x86 installer');
-  assert(windowsYml.includes('Program.cs'), 'windows.yml must build real Windows binaries');
+  assert(windowsYml.includes('prepare-gecko-runtime.ps1'), 'windows.yml must prepare real Mozilla Gecko runtime');
   assert(!windowsYml.includes('|| true'), 'windows.yml must not hide errors with || true');
 
   const linuxYml = fs.readFileSync('.github/workflows/linux.yml', 'utf8');
+  assert(linuxYml.includes('prepare-gecko-runtime.sh'), 'linux.yml must prepare standalone Mozilla Gecko runtime');
   assert(linuxYml.includes('dpkg-buildpackage'), 'linux.yml must run dpkg-buildpackage');
   assert(linuxYml.includes('desktop/quantum-browser_*.deb'), 'linux.yml must upload from desktop/ directory');
   assert(!linuxYml.includes('|| true'), 'linux.yml must not hide errors with || true');
