@@ -1,15 +1,19 @@
 package org.quantumbrowser.app
 
 import android.os.Bundle
-import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
+import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.GeckoView
-import org.mozilla.geckoview.WebExtension
+import org.mozilla.geckoview.WebRequestError
+import java.net.URLEncoder
 
 /**
  * Quantum Browser Android implementation powered strictly by Mozilla GeckoView.
@@ -32,7 +36,7 @@ class MainActivity : AppCompatActivity() {
 
         // 1. Initialize Mozilla GeckoRuntime with strict privacy defaults
         val runtimeSettings = GeckoRuntimeSettings.Builder()
-            .useContentProcess(true)
+            .aboutConfigEnabled(true)
             .allowInsecureConnections(GeckoRuntimeSettings.ALLOW_ALL)
             .configFilePath("")
             .build()
@@ -42,28 +46,18 @@ class MainActivity : AppCompatActivity() {
         // 2. Pre-bundle and install uBlock Origin WebExtension from assets
         installBundledUBlockOrigin()
 
-        // 3. Create GeckoSession with enhanced tracking protection and full YouTube / HTML5 video compatibility
+        // 3. Create GeckoSession with enhanced tracking protection and standard mobile Gecko settings
         geckoSession = GeckoSession().apply {
             open(geckoRuntime)
 
-            // Essential JavaScript and DOM storage configuration for YouTube Polymer / web apps
+            // Essential session configuration
             settings.allowJavascript = true
-            settings.domStorageEnabled = true
-            settings.cookieBehavior = org.mozilla.geckoview.GeckoSessionSettings.COOKIE_BEHAVIOR_ACCEPT_NON_TRACKERS
-
-            // Media, HTML5 video, MediaSource (MSE), and DRM compatibility
-            settings.mediaSourceEnabled = true
+            settings.useTrackingProtection = true
             settings.suspendMediaWhenInactive = false
-            settings.autoplayDefault = org.mozilla.geckoview.GeckoSessionSettings.AUTOPLAY_ALLOW_ALL
-
-            // User-Agent configuration: standard Android Gecko Firefox string for responsive mobile YouTube
-            settings.userAgentMode = org.mozilla.geckoview.GeckoSessionSettings.USER_AGENT_MODE_MOBILE
+            settings.userAgentMode = GeckoSessionSettings.USER_AGENT_MODE_MOBILE
             settings.userAgentOverride = "Mozilla/5.0 (Android 14; Mobile; rv:135.0) Gecko/135.0 Firefox/135.0"
 
-            // Tracking protection enabled with uBlock Origin
-            settings.useTrackingProtection = true
-
-            // Permission Delegate: grant media, autoplay, and storage permissions required by YouTube
+            // Permission Delegate
             permissionDelegate = object : GeckoSession.PermissionDelegate {
                 override fun onMediaPermissionRequest(
                     session: GeckoSession,
@@ -78,19 +72,18 @@ class MainActivity : AppCompatActivity() {
                 override fun onContentPermissionRequest(
                     session: GeckoSession,
                     perm: GeckoSession.PermissionDelegate.ContentPermission
-                ): org.mozilla.geckoview.GeckoResult<Int> {
-                    return org.mozilla.geckoview.GeckoResult.fromValue(
+                ): GeckoResult<Int> {
+                    return GeckoResult.fromValue(
                         GeckoSession.PermissionDelegate.ContentPermission.VALUE_ALLOW
                     )
                 }
             }
 
-            // Navigation Delegate: handle redirects (e.g. youtube.com -> m.youtube.com) and update URL input
+            // Navigation Delegate with verified GeckoView 99+ signatures
             navigationDelegate = object : GeckoSession.NavigationDelegate {
                 override fun onLocationChange(
                     session: GeckoSession,
-                    url: String?,
-                    perms: List<GeckoSession.PermissionDelegate.MediaPermission>
+                    url: String?
                 ) {
                     url?.let {
                         urlInput.setText(it)
@@ -100,8 +93,8 @@ class MainActivity : AppCompatActivity() {
                 override fun onLoadError(
                     session: GeckoSession,
                     uri: String?,
-                    error: GeckoSession.NavigationDelegate.LoadError
-                ): org.mozilla.geckoview.GeckoResult<String>? {
+                    error: WebRequestError
+                ): GeckoResult<String>? {
                     android.util.Log.e("QuantumBrowser", "Navigation load error on $uri: ${error.category} / ${error.code}")
                     return null
                 }
@@ -114,8 +107,8 @@ class MainActivity : AppCompatActivity() {
 
         // 4. Navigation handlers
         urlInput.setOnEditorActionListener { _, actionId, event ->
-            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_GO ||
-                actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH ||
+            if (actionId == EditorInfo.IME_ACTION_GO ||
+                actionId == EditorInfo.IME_ACTION_SEARCH ||
                 (event != null && event.keyCode == android.view.KeyEvent.KEYCODE_ENTER && event.action == android.view.KeyEvent.ACTION_DOWN)
             ) {
                 val input = urlInput.text.toString().trim()
@@ -125,12 +118,10 @@ class MainActivity : AppCompatActivity() {
                     } else if (input.contains(".") && !input.contains(" ")) {
                         "https://$input"
                     } else {
-                        "https://www.google.com/search?q=" + java.net.URLEncoder.encode(input, "UTF-8")
+                        "https://www.google.com/search?q=" + URLEncoder.encode(input, "UTF-8")
                     }
-                    // Standalone Android top-level navigation: loads directly via GeckoSession
-                    // Native GeckoView top-level windows are not affected by X-Frame-Options or frame-ancestors
                     geckoSession.loadUri(uri)
-                    val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
+                    val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
                     imm?.hideSoftInputFromWindow(urlInput.windowToken, 0)
                 }
                 true
@@ -145,13 +136,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun installBundledUBlockOrigin() {
-        // Install uBlock Origin WebExtension directly into GeckoRuntime
         geckoRuntime.webExtensionController.ensureBuiltIn(
             "resource://android/assets/extensions/uBlock0.firefox.xpi",
             "uBlock0@raymondhill.net"
         ).accept(
             { extension ->
-                android.util.Log.i("QuantumBrowser", "uBlock Origin WebExtension bundled & active: ${extension?.id}")
+                android.util.Log.i("QuantumBrowser", "uBlock Origin WebExtension active: ${extension?.id}")
             },
             { throwable ->
                 android.util.Log.e("QuantumBrowser", "Failed to load bundled uBlock Origin: ${throwable.message}")
