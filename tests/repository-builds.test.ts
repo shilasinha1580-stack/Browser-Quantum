@@ -51,7 +51,6 @@ export function runRepositoryBuildsTests() {
     'desktop/linux/debian/source/format',
     'desktop/linux/quantum-browser.desktop',
     'desktop/linux/bin/quantum',
-    'desktop/linux/bin/quantum-browser-app',
     'desktop/linux/prepare-gecko-runtime.sh',
     'desktop/common/policies.json',
     'desktop/common/extensions/uBlock0@raymondhill.net.xpi'
